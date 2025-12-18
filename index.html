@@ -10,7 +10,6 @@
     font-family: "Segoe UI", sans-serif;
     background: transparent;
     color: white;
-    pointer-events: none;
   }
 
   #cargoOverlay {
@@ -21,8 +20,8 @@
     padding: 10px 15px;
     border-radius: 8px;
     font-size: 14px;
-    pointer-events: none;
     z-index: 9999;
+    pointer-events: none;
   }
 </style>
 </head>
@@ -46,12 +45,12 @@ const airports = {
 };
 
 /* ================================
-   UI OVERLAY
+   OVERLAY UI
 ================================ */
 const overlay = document.getElementById('cargoOverlay');
 function updateOverlay(cargoName, airportName) {
-  overlay.innerHTML = cargoName 
-    ? `Cargo: <b>${cargoName}</b><br>Next Destination: <b>${airportName}</b>`
+  overlay.innerHTML = cargoName
+    ? `Cargo: <b>${cargoName}</b><br>Next Destination: <b>${airportName || 'Unknown'}</b>`
     : 'No cargo assigned';
 }
 
@@ -59,14 +58,15 @@ function updateOverlay(cargoName, airportName) {
    SET WAYPOINT
 ================================ */
 function setCargoWaypoint(code, cargoName = "") {
-  const airport = airports[code.toUpperCase()];
+  const airport = airports[code?.toUpperCase()];
   if (!airport) {
+    console.warn("Unknown cargo destination code:", code);
     window.parent.postMessage({ type: "notification", text: `⚠️ Unknown cargo destination: ${code}` }, "*");
     updateOverlay(cargoName, "Unknown");
     return;
   }
 
-  console.log("Setting waypoint:", code, airport.x, airport.y); // Debug
+  console.log("Setting waypoint:", code, airport.x, airport.y);
   window.parent.postMessage({ type: "setWaypoint", x: airport.x, y: airport.y }, "*");
   window.parent.postMessage({ type: "notification", text: `✈️ Cargo waypoint set: ${airport.name}` }, "*");
   updateOverlay(cargoName, airport.name);
@@ -99,11 +99,12 @@ function handleServerData(rawData) {
     return;
   }
 
+  // Try to extract airport code from displayname or modelname
   let match = nextCargo.displayname?.match(/Air Cargo:\s*([A-Z]+)/i);
   if (!match) match = nextCargo.modelname?.match(/aircargo_([a-z]+)/i);
-  const airportCode = match ? match[1].toUpperCase() : null;
 
-  setCargoWaypoint(airportCode, nextCargo.displayname);
+  const airportCode = match ? match[1].toUpperCase() : null;
+  setCargoWaypoint(airportCode, nextCargo.displayname || "Air Cargo");
 }
 
 /* ================================
@@ -111,18 +112,21 @@ function handleServerData(rawData) {
 ================================ */
 window.addEventListener("message", (event) => {
   const msg = event.data;
+  console.log("Message received:", msg);
 
+  // Notifications from server
   if(msg?.type === "notification" && typeof msg.text === "string") {
-    console.log("Notification received:", msg.text); // Debug
+    console.log("Notification:", msg.text);
 
-    // Match notifications like: "Received 1 Air Cargo: LSIA."
+    // Match messages like "Received 1 Air Cargo: LSIA."
     const match = msg.text.match(/Air Cargo:\s*([A-Z]+)/i);
     if(match) {
-      console.log("Airport code detected:", match[1]); // Debug
+      console.log("Airport code detected:", match[1]);
       setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
     }
   }
 
+  // Data messages
   if(msg?.data) {
     handleServerData(msg.data);
   }
@@ -131,6 +135,7 @@ window.addEventListener("message", (event) => {
 /* ================================
    INITIAL REQUEST
 ================================ */
+console.log("Cargo Pilot overlay loaded, requesting data...");
 window.parent.postMessage({ type: "getData" }, "*");
 </script>
 </body>
