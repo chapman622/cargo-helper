@@ -5,150 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cargo Pilot Auto Waypoint</title>
 <style>
-  body {
-    margin: 0;
-    font-family: "Segoe UI", sans-serif;
-    background: transparent;
-    color: white;
-  }
-  #cargoOverlay {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(0,0,0,0.7);
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    z-index: 9999;
-    pointer-events: none;
-  }
-  #version {
-    position: fixed;
-    bottom: 10px;
-    right: 10px;
-    color: white;
-    font-size: 12px;
-  }
+body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; color:white; }
+#cargoOverlay {
+  position:fixed; top:10px; right:10px;
+  background:rgba(0,0,0,0.7); padding:10px 15px;
+  border-radius:8px; font-size:14px; z-index:9999;
+  pointer-events:none;
+}
+#version { position:fixed; bottom:10px; right:10px; color:white; font-size:12px; }
 </style>
 </head>
 <body>
-<div id="cargoOverlay">Waiting for cargo...</div>
+<div id="cargoOverlay">Waiting for cargo notifications...</div>
 <div id="version">v1</div>
 
 <script>
 // ================================
-// AUTO CACHE-BUST
-// ================================
-(function() {
-  const url = new URL(window.location.href);
-  if (!url.searchParams.has("v")) {
-    url.searchParams.set("v", Date.now());
-    window.location.replace(url.toString());
-  }
-})();
-
-// ================================
 // AIRPORT COORDINATES
 // ================================
 const airports = {
-  LSIA: { x: -1583.657, y: -3180.656, name: "Los Santos Intl" },
-  SSIA: { x: 1738.28, y: 3296.53, name: "Sandy Shores Intl" },
-  PBA:  { x: -447.2,  y: 6013.8,  name: "Paleto Bay Airstrip" },
-  CIA:  { x: -2237.2, y: -395.6,  name: "Chumash Airstrip" },
-  MGA:  { x: 2811.6, y: 4851.2,  name: "Mount Gordo Airstrip" },
-  POA:  { x: -3058.6,y: 2595.5,  name: "Pacific Ocean Airstrip" },
-  POP:  { x: 1000,   y: 1000,    name: "PostOP Airport" },
-  SCA:  { x: 1500,   y: 1500,    name: "San Chianski Airport" },
-  ZMA:  { x: -2000,  y: 3000,    name: "Fort Zancudo" }
+  LSIA:{x:-1583.657,y:-3180.656,name:"Los Santos Intl"},
+  SSIA:{x:1738.28,y:3296.53,name:"Sandy Shores Intl"},
+  PBA:{x:-447.2,y:6013.8,name:"Paleto Bay Airstrip"},
+  CIA:{x:-2237.2,y:-395.6,name:"Chumash Airstrip"},
+  MGA:{x:2811.6,y:4851.2,name:"Mount Gordo Airstrip"},
+  POA:{x:-3058.6,y:2595.5,name:"Pacific Ocean Airstrip"},
+  POP:{x:1000,y:1000,name:"PostOP Airport"},
+  SCA:{x:1500,y:1500,name:"San Chianski Airport"},
+  ZMA:{x:-2000,y:3000,name:"Fort Zancudo"}
 };
 
 // ================================
-// OVERLAY UI
+// UI UPDATE
 // ================================
 const overlay = document.getElementById('cargoOverlay');
 function updateOverlay(cargoName, airportName) {
   overlay.innerHTML = cargoName
     ? `Cargo: <b>${cargoName}</b><br>Next: <b>${airportName || 'Unknown'}</b>`
-    : 'Waiting for cargo...';
+    : 'Waiting for cargo notifications...';
 }
 
 // ================================
 // SET WAYPOINT
 // ================================
-function setCargoWaypoint(code, cargoName = "") {
+function setCargoWaypoint(code, cargoName="") {
   const airport = airports[code?.toUpperCase()];
-  if (!airport) {
-    window.parent.postMessage({ type: "notification", text: `⚠️ Unknown cargo dest: ${code}` }, "*");
-    updateOverlay(cargoName, "Unknown");
+  if(!airport){
+    window.parent.postMessage({type:"notification", text:`⚠️ Unknown cargo: ${code}`},"*");
+    updateOverlay(cargoName,"Unknown");
     return;
   }
 
-  window.parent.postMessage({ type: "setWaypoint", x: airport.x, y: airport.y }, "*");
-  window.parent.postMessage({ type: "notification", text: `✈️ Waypoint set: ${airport.name}` }, "*");
+  window.parent.postMessage({type:"setWaypoint", x:airport.x, y:airport.y},"*");
+  window.parent.postMessage({type:"notification", text:`✈️ Waypoint set: ${airport.name}`},"*");
   updateOverlay(cargoName, airport.name);
 }
 
 // ================================
-// HANDLE GAME DATA
+// HANDLE NOTIFICATIONS
 // ================================
-function handleData(msg) {
-  try {
-    const isAirCargoNotification = msg.notification && msg.notification.includes("Air Cargo");
-    const hasInventory = !!msg.inventory;
-
-    // Only process Air Cargo notifications or inventory
-    if (!isAirCargoNotification && !hasInventory) return;
-
-    // Debug: log inventory once to F8 so you can see structure
-    if(hasInventory) {
-      try { console.log("Inventory JSON:", msg.inventory); } catch(e) {}
+function handleNotification(msg){
+  if(msg?.notification && msg.notification.includes("Air Cargo")){
+    const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
+    if(match){
+      const airportCode = match[1].toUpperCase();
+      setCargoWaypoint(airportCode,"Air Cargo");
     }
-
-    // Inventory: try to find next Air Cargo item
-    if(hasInventory) {
-      const inventory = JSON.parse(msg.inventory);
-      // Example structure: adjust this based on your F8 output
-      // Look for item with "Air Cargo" in displayname or modelname
-      const nextCargo = inventory.find(i => 
-        (i.displayname && i.displayname.includes("Air Cargo")) ||
-        (i.modelname && i.modelname.toLowerCase().includes("aircargo"))
-      );
-      if(nextCargo) {
-        // Try to detect airport code
-        let match = (nextCargo.displayname || "").match(/Air Cargo:\s*([A-Z]+)/i);
-        if(!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
-        const airportCode = match ? match[1].toUpperCase() : null;
-        if(airportCode) setCargoWaypoint(airportCode, nextCargo.displayname || nextCargo.modelname || "Air Cargo");
-      } else {
-        updateOverlay(null, null);
-      }
-    }
-
-    // Handle Air Cargo notifications
-    if(isAirCargoNotification) {
-      const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
-      if(match) setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
-    }
-
-  } catch(e) {
-    console.error("Error processing cargo data:", e);
   }
 }
 
 // ================================
-// LISTEN FOR GAME DATA
+// LISTEN FOR GAME MESSAGES
 // ================================
-window.addEventListener("message", (event) => handleData(event.data));
-
-// ================================
-// REQUEST INITIAL DATA
-// ================================
-window.parent.postMessage({ type: "getData" }, "*");
+window.addEventListener("message", (event)=>{
+  handleNotification(event.data);
+});
 
 // ================================
 // INITIAL OVERLAY
 // ================================
-updateOverlay(null, null);
+updateOverlay(null,null);
 </script>
 </body>
 </html>
