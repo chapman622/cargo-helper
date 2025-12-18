@@ -26,7 +26,7 @@
 </style>
 </head>
 <body>
-<div id="cargoOverlay">Loading cargo info...</div>
+<div id="cargoOverlay">Waiting for cargo...</div>
 
 <script>
 // ================================
@@ -51,7 +51,7 @@ const overlay = document.getElementById('cargoOverlay');
 function updateOverlay(cargoName, airportName) {
   overlay.innerHTML = cargoName
     ? `Cargo: <b>${cargoName}</b><br>Next: <b>${airportName || 'Unknown'}</b>`
-    : 'No cargo assigned';
+    : 'Waiting for cargo...';
 }
 
 // ================================
@@ -75,20 +75,19 @@ function setCargoWaypoint(code, cargoName = "") {
 // ================================
 function handleData(msg) {
   try {
-    // Only process if it contains inventory or Air Cargo notification
     const hasInventory = !!msg.inventory;
     const isAirCargoNotification = msg.notification && msg.notification.includes("Air Cargo");
-    if(!hasInventory && !isAirCargoNotification) return;
+    if (!hasInventory && !isAirCargoNotification) return;
 
-    // Process inventory
-    if(hasInventory){
+    // Process inventory for next active cargo
+    if (hasInventory) {
       const inventory = JSON.parse(msg.inventory);
       const nextCargo = inventory.find(i => i.exists === "1" || i.status === "active");
-      if(nextCargo){
+      if (nextCargo) {
         let match = (nextCargo.displayname || "").match(/Air Cargo:\s*([A-Z]+)/i);
-        if(!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
+        if (!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
         const airportCode = match ? match[1].toUpperCase() : null;
-        if(airportCode){
+        if (airportCode) {
           setCargoWaypoint(airportCode, nextCargo.displayname || nextCargo.modelname || "Air Cargo");
         }
       } else {
@@ -96,36 +95,28 @@ function handleData(msg) {
       }
     }
 
-    // Process notification (Air Cargo only)
-    if(isAirCargoNotification){
+    // Process Air Cargo notifications
+    if (isAirCargoNotification) {
       const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
-      if(match){
+      if (match) {
         setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
       }
     }
-  } catch(e){
+  } catch (e) {
     console.error("Error processing cargo data:", e);
   }
 }
 
 // ================================
-// LISTEN FOR MESSAGES
+// LISTEN FOR GAME DATA
 // ================================
 window.addEventListener("message", (event) => {
   handleData(event.data);
 });
 
 // ================================
-// POLLING GETDATA
+// INITIAL OVERLAY
 // ================================
-setInterval(() => {
-  window.parent.postMessage({ type: "getData" }, "*");
-}, 1000);
-
-// ================================
-// INITIAL REQUEST
-// ================================
-window.parent.postMessage({ type: "getData" }, "*");
 updateOverlay(null, null);
 </script>
 </body>
