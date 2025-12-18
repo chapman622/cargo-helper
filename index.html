@@ -29,9 +29,9 @@
 <div id="cargoOverlay">Loading cargo info...</div>
 
 <script>
-/* ================================
-   AIRPORT COORDINATES
-================================ */
+// ================================
+// AIRPORT COORDINATES
+// ================================
 const airports = {
   LSIA: { x: -1583.657, y: -3180.656, name: "Los Santos Intl" },
   SSIA: { x: 1738.28, y: 3296.53, name: "Sandy Shores Intl" },
@@ -44,99 +44,82 @@ const airports = {
   ZMA:  { x: -2000,  y: 3000,    name: "Fort Zancudo" }
 };
 
-/* ================================
-   OVERLAY UI
-================================ */
+// ================================
+// OVERLAY UI
+// ================================
 const overlay = document.getElementById('cargoOverlay');
 function updateOverlay(cargoName, airportName) {
   overlay.innerHTML = cargoName
-    ? `Cargo: <b>${cargoName}</b><br>Next Destination: <b>${airportName || 'Unknown'}</b>`
+    ? `Cargo: <b>${cargoName}</b><br>Next: <b>${airportName || 'Unknown'}</b>`
     : 'No cargo assigned';
 }
 
-/* ================================
-   SET WAYPOINT
-================================ */
+// ================================
+// SET WAYPOINT
+// ================================
 function setCargoWaypoint(code, cargoName = "") {
   const airport = airports[code?.toUpperCase()];
   if (!airport) {
-    console.warn("Unknown cargo destination code:", code);
-    window.parent.postMessage({ type: "notification", text: `⚠️ Unknown cargo destination: ${code}` }, "*");
+    window.parent.postMessage({ type: "notification", text: `⚠️ Unknown cargo dest: ${code}` }, "*");
     updateOverlay(cargoName, "Unknown");
     return;
   }
 
-  console.log("Setting waypoint:", code, airport.x, airport.y);
   window.parent.postMessage({ type: "setWaypoint", x: airport.x, y: airport.y }, "*");
-  window.parent.postMessage({ type: "notification", text: `✈️ Cargo waypoint set: ${airport.name}` }, "*");
+  window.parent.postMessage({ type: "notification", text: `✈️ Waypoint set: ${airport.name}` }, "*");
   updateOverlay(cargoName, airport.name);
 }
 
-/* ================================
-   HANDLE SERVER DATA
-================================ */
-function handleServerData(rawData) {
-  let cargoArray = [];
-
-  if (Array.isArray(rawData)) {
-    for (const item of rawData) {
-      if (item.data && Array.isArray(item.data)) {
-        cargoArray.push(...item.data);
+// ================================
+// PROCESS INVENTORY & NOTIFICATIONS
+// ================================
+function handleData(msg) {
+  try {
+    // Process inventory
+    if(msg.inventory){
+      const inventory = JSON.parse(msg.inventory);
+      const nextCargo = inventory.find(i => i.exists === "1" || i.status === "active");
+      if(nextCargo){
+        let match = (nextCargo.displayname || "").match(/Air Cargo:\s*([A-Z]+)/i);
+        if(!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
+        const airportCode = match ? match[1].toUpperCase() : null;
+        setCargoWaypoint(airportCode, nextCargo.displayname || nextCargo.modelname || "Air Cargo");
+      } else {
+        updateOverlay(null, null);
       }
     }
-  } else if (rawData?.data && Array.isArray(rawData.data)) {
-    cargoArray = rawData.data;
+
+    // Optionally handle notification messages
+    if(msg.notification){
+      const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
+      if(match){
+        setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
+      }
+    }
+  } catch(e){
+    console.error("Error processing data:", e);
   }
-
-  if (!cargoArray.length) {
-    updateOverlay(null, null);
-    return;
-  }
-
-  const nextCargo = cargoArray.find(c => c.exists === "1");
-  if (!nextCargo) {
-    updateOverlay(null, null);
-    return;
-  }
-
-  // Try to extract airport code from displayname or modelname
-  let match = nextCargo.displayname?.match(/Air Cargo:\s*([A-Z]+)/i);
-  if (!match) match = nextCargo.modelname?.match(/aircargo_([a-z]+)/i);
-
-  const airportCode = match ? match[1].toUpperCase() : null;
-  setCargoWaypoint(airportCode, nextCargo.displayname || "Air Cargo");
 }
 
-/* ================================
-   LISTEN FOR SERVER MESSAGES
-================================ */
+// ================================
+// LISTEN FOR MESSAGES
+// ================================
 window.addEventListener("message", (event) => {
-  const msg = event.data;
-  console.log("Message received:", msg);
-
-  // Notifications from server
-  if(msg?.type === "notification" && typeof msg.text === "string") {
-    console.log("Notification:", msg.text);
-
-    // Match messages like "Received 1 Air Cargo: LSIA."
-    const match = msg.text.match(/Air Cargo:\s*([A-Z]+)/i);
-    if(match) {
-      console.log("Airport code detected:", match[1]);
-      setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
-    }
-  }
-
-  // Data messages
-  if(msg?.data) {
-    handleServerData(msg.data);
-  }
+  handleData(event.data);
 });
 
-/* ================================
-   INITIAL REQUEST
-================================ */
-console.log("Cargo Pilot overlay loaded, requesting data...");
+// ================================
+// POLLING GETDATA
+// ================================
+setInterval(() => {
+  window.parent.postMessage({ type: "getData" }, "*");
+}, 1000);
+
+// ================================
+// INITIAL MESSAGE
+// ================================
 window.parent.postMessage({ type: "getData" }, "*");
+updateOverlay(null, null);
 </script>
 </body>
 </html>
