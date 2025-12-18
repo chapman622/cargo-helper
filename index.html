@@ -10,7 +10,7 @@
     font-family: "Segoe UI", sans-serif;
     background: transparent;
     color: white;
-    pointer-events: none; /* prevent clicks */
+    pointer-events: none;
   }
 
   #cargoOverlay {
@@ -66,6 +66,7 @@ function setCargoWaypoint(code, cargoName = "") {
     return;
   }
 
+  console.log("Setting waypoint:", code, airport.x, airport.y); // Debug
   window.parent.postMessage({ type: "setWaypoint", x: airport.x, y: airport.y }, "*");
   window.parent.postMessage({ type: "notification", text: `✈️ Cargo waypoint set: ${airport.name}` }, "*");
   updateOverlay(cargoName, airport.name);
@@ -78,7 +79,6 @@ function handleServerData(rawData) {
   let cargoArray = [];
 
   if (Array.isArray(rawData)) {
-    // rawData is an array of objects, each may contain .data
     for (const item of rawData) {
       if (item.data && Array.isArray(item.data)) {
         cargoArray.push(...item.data);
@@ -93,21 +93,15 @@ function handleServerData(rawData) {
     return;
   }
 
-  // Pick first available cargo
   const nextCargo = cargoArray.find(c => c.exists === "1");
   if (!nextCargo) {
     updateOverlay(null, null);
     return;
   }
 
-  // Extract airport code from displayname or modelname
   let match = nextCargo.displayname?.match(/Air Cargo:\s*([A-Z]+)/i);
   if (!match) match = nextCargo.modelname?.match(/aircargo_([a-z]+)/i);
   const airportCode = match ? match[1].toUpperCase() : null;
-  if (!airportCode) {
-    updateOverlay(nextCargo.displayname, "Unknown");
-    return;
-  }
 
   setCargoWaypoint(airportCode, nextCargo.displayname);
 }
@@ -118,14 +112,18 @@ function handleServerData(rawData) {
 window.addEventListener("message", (event) => {
   const msg = event.data;
 
-  // Notifications
-  if (msg?.type === "notification" && typeof msg.text === "string") {
+  if(msg?.type === "notification" && typeof msg.text === "string") {
+    console.log("Notification received:", msg.text); // Debug
+
+    // Match notifications like: "Received 1 Air Cargo: LSIA."
     const match = msg.text.match(/Air Cargo:\s*([A-Z]+)/i);
-    if (match) setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
+    if(match) {
+      console.log("Airport code detected:", match[1]); // Debug
+      setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
+    }
   }
 
-  // Server data
-  if (msg?.data) {
+  if(msg?.data) {
     handleServerData(msg.data);
   }
 });
