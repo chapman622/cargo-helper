@@ -18,7 +18,7 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 </head>
 <body>
 <div id="cargoOverlay">Waiting for cargo notifications...</div>
-<div id="version">v1.2</div>
+<div id="version">v1.3</div>
 
 <script>
 // ================================
@@ -77,19 +77,11 @@ function setCargoWaypoint(code, cargoName=""){
 }
 
 // ================================
-// HANDLE NOTIFICATIONS
+// PROCESS NOTIFICATION
 // ================================
-function handleNotification(msg){
-  if(!msg) return;
+function processNotification(text){
+  if(!text) return;
 
-  // Debug: log everything we receive
-  console.log("Received game data:", msg);
-
-  if(typeof msg.notification !== "string") return;
-
-  const text = msg.notification;
-
-  // Match "Air Cargo: CODE" (case-insensitive)
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
     const airportCode = match[1].toUpperCase();
@@ -98,16 +90,29 @@ function handleNotification(msg){
 }
 
 // ================================
-// LISTEN FOR GAME MESSAGES
+// HANDLE ALL GAME DATA MESSAGES
 // ================================
-window.addEventListener("message", (event)=>{
-  handleNotification(event.data);
-});
+function handleGameMessage(event){
+  // Some messages wrap the data in a "data" field
+  const msg = event.data.data || event.data || {};
+  
+  if(msg.notification && typeof msg.notification === "string"){
+    processNotification(msg.notification);
+  }
+
+  // Debug: log all game data
+  console.log("Received game data:", msg);
+}
 
 // ================================
-// REQUEST INITIAL DATA ON LOAD
+// LISTEN FOR GAME MESSAGES
 // ================================
-window.parent.postMessage({ type: "getData" }, "*");
+window.addEventListener("message", handleGameMessage);
+
+// ================================
+// REQUEST LAST CACHED NOTIFICATION ON LOAD
+// ================================
+window.parent.postMessage({ type: "getNamedData", keys: ["notification"] }, "*");
 
 // ================================
 // INITIAL OVERLAY
