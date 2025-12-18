@@ -75,8 +75,13 @@ function setCargoWaypoint(code, cargoName = "") {
 // ================================
 function handleData(msg) {
   try {
+    // Only process if it contains inventory or Air Cargo notification
+    const hasInventory = !!msg.inventory;
+    const isAirCargoNotification = msg.notification && msg.notification.includes("Air Cargo");
+    if(!hasInventory && !isAirCargoNotification) return;
+
     // Process inventory
-    if(msg.inventory){
+    if(hasInventory){
       const inventory = JSON.parse(msg.inventory);
       const nextCargo = inventory.find(i => i.exists === "1" || i.status === "active");
       if(nextCargo){
@@ -91,15 +96,15 @@ function handleData(msg) {
       }
     }
 
-    // Process notifications (only Air Cargo)
-    if(msg.notification && msg.notification.includes("Air Cargo")){
+    // Process notification (Air Cargo only)
+    if(isAirCargoNotification){
       const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
       if(match){
         setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
       }
     }
   } catch(e){
-    console.error("Error processing data:", e);
+    console.error("Error processing cargo data:", e);
   }
 }
 
