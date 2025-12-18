@@ -18,7 +18,7 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 </head>
 <body>
 <div id="cargoOverlay">Waiting for cargo notifications...</div>
-<div id="version">v1.3</div>
+<div id="version">v1.4</div>
 
 <script>
 // ================================
@@ -77,10 +77,19 @@ function setCargoWaypoint(code, cargoName=""){
 }
 
 // ================================
+// LAST NOTIFICATION TRACKER
+// ================================
+let lastNotification = null;
+
+// ================================
 // PROCESS NOTIFICATION
 // ================================
 function processNotification(text){
   if(!text) return;
+
+  // Ignore duplicate notifications
+  if(text === lastNotification) return;
+  lastNotification = text;
 
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
