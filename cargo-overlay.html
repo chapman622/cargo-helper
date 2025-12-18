@@ -39,6 +39,17 @@
 
 <script>
 // ================================
+// AUTO CACHE-BUST
+// ================================
+(function() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("v")) {
+    url.searchParams.set("v", Date.now());
+    window.location.replace(url.toString());
+  }
+})();
+
+// ================================
 // AIRPORT COORDINATES
 // ================================
 const airports = {
@@ -84,13 +95,13 @@ function setCargoWaypoint(code, cargoName = "") {
 // ================================
 function handleData(msg) {
   try {
-    // Only process Air Cargo notifications or inventory
     const isAirCargoNotification = msg.notification && msg.notification.includes("Air Cargo");
     const hasInventory = !!msg.inventory;
 
+    // Ignore all messages that are neither Air Cargo nor inventory
     if (!isAirCargoNotification && !hasInventory) return;
 
-    // Inventory check for next active cargo
+    // Inventory: find next active cargo
     if (hasInventory) {
       const inventory = JSON.parse(msg.inventory);
       const nextCargo = inventory.find(i => i.exists === "1" || i.status === "active");
@@ -106,14 +117,13 @@ function handleData(msg) {
       }
     }
 
-    // Only handle Air Cargo notifications
+    // Air Cargo notification: set waypoint
     if (isAirCargoNotification) {
       const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
       if (match) {
         setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
       }
     }
-
   } catch (e) {
     console.error("Error processing cargo data:", e);
   }
