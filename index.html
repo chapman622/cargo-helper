@@ -11,13 +11,14 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
   background:rgba(0,0,0,0.7); padding:10px 15px;
   border-radius:8px; font-size:14px; z-index:9999;
   pointer-events:none;
+  transition: opacity 0.3s ease;
 }
 #version { position:fixed; bottom:10px; right:10px; color:white; font-size:12px; }
 </style>
 </head>
 <body>
 <div id="cargoOverlay">Waiting for cargo notifications...</div>
-<div id="version">v1</div>
+<div id="version">v1.2</div>
 
 <script>
 // ================================
@@ -50,20 +51,23 @@ const airports = {
 // UI UPDATE
 // ================================
 const overlay = document.getElementById('cargoOverlay');
-function updateOverlay(cargoName, airportName) {
+function updateOverlay(cargoName, airportName){
   overlay.innerHTML = cargoName
     ? `Cargo: <b>${cargoName}</b><br>Next: <b>${airportName || 'Unknown'}</b>`
     : 'Waiting for cargo notifications...';
+  
+  overlay.style.opacity = 1;
+  setTimeout(()=>{ overlay.style.opacity = 0.7; }, 5000);
 }
 
 // ================================
 // SET WAYPOINT
 // ================================
-function setCargoWaypoint(code, cargoName="") {
+function setCargoWaypoint(code, cargoName=""){
   const airport = airports[code?.toUpperCase()];
   if(!airport){
-    window.parent.postMessage({type:"notification", text:`⚠️ Unknown cargo: ${code}`},"*");
-    updateOverlay(cargoName,"Unknown");
+    window.parent.postMessage({type:"notification", text:`⚠️ Unknown airport code: ${code}`},"*");
+    updateOverlay(cargoName, `Unknown (${code})`);
     return;
   }
 
@@ -76,12 +80,20 @@ function setCargoWaypoint(code, cargoName="") {
 // HANDLE NOTIFICATIONS
 // ================================
 function handleNotification(msg){
-  if(msg?.notification && msg.notification.includes("Air Cargo")){
-    const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
-    if(match){
-      const airportCode = match[1].toUpperCase();
-      setCargoWaypoint(airportCode,"Air Cargo");
-    }
+  if(!msg) return;
+
+  // Debug: log everything we receive
+  console.log("Received game data:", msg);
+
+  if(typeof msg.notification !== "string") return;
+
+  const text = msg.notification;
+
+  // Match "Air Cargo: CODE" (case-insensitive)
+  const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
+  if(match){
+    const airportCode = match[1].toUpperCase();
+    setCargoWaypoint(airportCode, "Air Cargo");
   }
 }
 
