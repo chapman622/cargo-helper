@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cargo Pilot Auto Waypoint</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: transparent;
+    color: white;
+    pointer-events: none; /* prevents clicks */
+  }
+
+  #cargoOverlay {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.6);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    pointer-events: none;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+<div id="cargoOverlay">Loading cargo info...</div>
+
+<script>
+/* ================================
+   AIRPORT COORDINATES
+================================ */
+const airports = {
+  LSIA: { x: -1583.657, y: -3180.656, name: "Los Santos Intl" },
+  SSIA: { x: 1738.28, y: 3296.53, name: "Sandy Shores Intl" },
+  PBA:  { x: -447.2,  y: 6013.8,  name: "Paleto Bay Airstrip" },
+  CIA:  { x: -2237.2, y: -395.6,  name: "Chumash Airstrip" },
+  MGA:  { x: 2811.6, y: 4851.2,  name: "Mount Gordo Airstrip" },
+  POA:  { x: -3058.6,y: 2595.5,  name: "Pacific Ocean Airstrip" },
+  POP:  { x: 1000,   y: 1000,    name: "PostOP Airport" },
+  SCA:  { x: 1500,   y: 1500,    name: "San Chianski Airport" },
+  ZMA:  { x: -2000,  y: 3000,    name: "Fort Zancudo" }
+};
+
+/* ================================
+   UI OVERLAY
+================================ */
+const overlay = document.getElementById('cargoOverlay');
+function updateOverlay(cargoName, airportName) {
+  overlay.innerHTML = cargoName 
+    ? `Cargo: <b>${cargoName}</b><br>Next Destination: <b>${airportName}</b>`
+    : 'No cargo assigned';
+}
+
+/* ================================
+   SET WAYPOINT
+================================ */
+function setCargoWaypoint(code, cargoName = "") {
+  const airport = airports[code.toUpperCase()];
+  if (!airport) {
+    window.parent.postMessage({ type: "notification", text: `⚠️ Unknown cargo destination: ${code}` }, "*");
+    updateOverlay(cargoName, "Unknown");
+    return;
+  }
+
+  window.parent.postMessage({ type: "setWaypoint", x: airport.x, y: airport.y }, "*");
+  window.parent.postMessage({ type: "notification", text: `✈️ Cargo waypoint set: ${airport.name}` }, "*");
+  updateOverlay(cargoName, airport.name);
+}
+
+/* ================================
+   HANDLE SERVER DATA
+================================ */
+function handleServerData(rawData) {
+  let cargoArray = [];
+
+  // rawData can be array of objects each containing .data
+  if (Array.isArray(rawData)) {
+    for (const item of rawData) {
+      if (item.data && Array.isArray(item.data)) {
+        cargoArray.push(...item.data);
+      }
+    }
+  } else if (rawData?.data) {
+    cargoArray = rawData.data;
+  }
+
+  if (!cargoArray.length) {
+    updateOverlay(null, null);
+    return;
+  }
+
+  // Pick first available cargo
+  const nextCargo = cargoArray.find(c => c.exists === "1");
+  if (!nextCargo) {
+    updateOverlay(null, null);
+    return;
+  }
+
+  // Extract airport code from displayname or modelname
+  let match = nextCargo.displayname.match(/Air Cargo:\s*([A-Z]+)/i);
+  if (!match) match = nextCargo.modelname.match(/aircargo_([a-z]+)/i);
+  const airportCode = match ? match[1].toUpperCase() : null;
+  if (!airportCode) return;
+
+  setCargoWaypoint(airportCode, nextCargo.displayname);
+}
+
+/* ================================
+   LISTEN FOR SERVER MESSAGES
+================================ */
+window.addEventListener("message", (event) => {
+  const msg = event.data;
+
+  // Notifications
+  if (msg?.type === "notification" && typeof msg.text === "string") {
+    const match = msg.text.match(/Air Cargo:\s*([A-Z]+)/i);
+    if (match) setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
+  }
+
+  // Server data
+  if (msg?.data) {
+    handleServerData(msg.data);
+  }
+});
+
+/* ================================
+   INITIAL REQUEST
+================================ */
+window.parent.postMessage({ type: "getData" }, "*");
+</script>
+</body>
+</html>
