@@ -21,6 +21,17 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 
 <script>
 // ================================
+// AUTO CACHE-BUST
+// ================================
+(function() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("v")) {
+    url.searchParams.set("v", Date.now());
+    window.location.replace(url.toString());
+  }
+})();
+
+// ================================
 // AIRPORT COORDINATES
 // ================================
 const airports = {
@@ -80,6 +91,11 @@ function handleNotification(msg){
 window.addEventListener("message", (event)=>{
   handleNotification(event.data);
 });
+
+// ================================
+// REQUEST INITIAL DATA ON LOAD
+// ================================
+window.parent.postMessage({ type: "getData" }, "*");
 
 // ================================
 // INITIAL OVERLAY
