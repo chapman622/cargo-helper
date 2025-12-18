@@ -18,7 +18,7 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 </head>
 <body>
 <div id="cargoOverlay">Waiting for cargo notifications...</div>
-<div id="version">v1.4</div>
+<div id="version">v1.5</div>
 
 <script>
 // ================================
@@ -77,9 +77,9 @@ function setCargoWaypoint(code, cargoName=""){
 }
 
 // ================================
-// LAST NOTIFICATION TRACKER
+// TRACK LAST PROCESSED CARGO
 // ================================
-let lastNotification = null;
+let lastCargoCode = null;
 
 // ================================
 // PROCESS NOTIFICATION
@@ -87,30 +87,33 @@ let lastNotification = null;
 function processNotification(text){
   if(!text) return;
 
-  // Ignore duplicate notifications
-  if(text === lastNotification) return;
-  lastNotification = text;
+  // Ignore notifications sent by our app
+  if(text.includes("✈️ Waypoint set:")) return;
 
+  // Match Air Cargo notifications
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
     const airportCode = match[1].toUpperCase();
+
+    // Only set waypoint if this is a new Air Cargo code
+    if(airportCode === lastCargoCode) return;
+    lastCargoCode = airportCode;
+
     setCargoWaypoint(airportCode, "Air Cargo");
   }
 }
 
 // ================================
-// HANDLE ALL GAME DATA MESSAGES
+// HANDLE GAME DATA
 // ================================
 function handleGameMessage(event){
-  // Some messages wrap the data in a "data" field
   const msg = event.data.data || event.data || {};
-  
+
   if(msg.notification && typeof msg.notification === "string"){
     processNotification(msg.notification);
   }
 
-  // Debug: log all game data
-  console.log("Received game data:", msg);
+  console.log("Received game data:", msg); // Debug
 }
 
 // ================================
