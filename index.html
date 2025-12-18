@@ -11,7 +11,6 @@
     background: transparent;
     color: white;
   }
-
   #cargoOverlay {
     position: fixed;
     top: 10px;
@@ -23,7 +22,6 @@
     z-index: 9999;
     pointer-events: none;
   }
-
   #version {
     position: fixed;
     bottom: 10px;
@@ -91,40 +89,48 @@ function setCargoWaypoint(code, cargoName = "") {
 }
 
 // ================================
-// PROCESS INVENTORY & NOTIFICATIONS
+// HANDLE GAME DATA
 // ================================
 function handleData(msg) {
   try {
     const isAirCargoNotification = msg.notification && msg.notification.includes("Air Cargo");
     const hasInventory = !!msg.inventory;
 
-    // Ignore all messages that are neither Air Cargo nor inventory
+    // Only process Air Cargo notifications or inventory
     if (!isAirCargoNotification && !hasInventory) return;
 
-    // Inventory: find next active cargo
-    if (hasInventory) {
+    // Debug: log inventory once to F8 so you can see structure
+    if(hasInventory) {
+      try { console.log("Inventory JSON:", msg.inventory); } catch(e) {}
+    }
+
+    // Inventory: try to find next Air Cargo item
+    if(hasInventory) {
       const inventory = JSON.parse(msg.inventory);
-      const nextCargo = inventory.find(i => i.exists === "1" || i.status === "active");
-      if (nextCargo) {
+      // Example structure: adjust this based on your F8 output
+      // Look for item with "Air Cargo" in displayname or modelname
+      const nextCargo = inventory.find(i => 
+        (i.displayname && i.displayname.includes("Air Cargo")) ||
+        (i.modelname && i.modelname.toLowerCase().includes("aircargo"))
+      );
+      if(nextCargo) {
+        // Try to detect airport code
         let match = (nextCargo.displayname || "").match(/Air Cargo:\s*([A-Z]+)/i);
-        if (!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
+        if(!match) match = (nextCargo.modelname || "").match(/aircargo_([a-z]+)/i);
         const airportCode = match ? match[1].toUpperCase() : null;
-        if (airportCode) {
-          setCargoWaypoint(airportCode, nextCargo.displayname || nextCargo.modelname || "Air Cargo");
-        }
+        if(airportCode) setCargoWaypoint(airportCode, nextCargo.displayname || nextCargo.modelname || "Air Cargo");
       } else {
         updateOverlay(null, null);
       }
     }
 
-    // Air Cargo notification: set waypoint
-    if (isAirCargoNotification) {
+    // Handle Air Cargo notifications
+    if(isAirCargoNotification) {
       const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
-      if (match) {
-        setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
-      }
+      if(match) setCargoWaypoint(match[1].toUpperCase(), "Air Cargo");
     }
-  } catch (e) {
+
+  } catch(e) {
     console.error("Error processing cargo data:", e);
   }
 }
@@ -132,9 +138,12 @@ function handleData(msg) {
 // ================================
 // LISTEN FOR GAME DATA
 // ================================
-window.addEventListener("message", (event) => {
-  handleData(event.data);
-});
+window.addEventListener("message", (event) => handleData(event.data));
+
+// ================================
+// REQUEST INITIAL DATA
+// ================================
+window.parent.postMessage({ type: "getData" }, "*");
 
 // ================================
 // INITIAL OVERLAY
