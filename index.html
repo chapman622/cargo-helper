@@ -10,14 +10,14 @@
     font-family: "Segoe UI", sans-serif;
     background: transparent;
     color: white;
-    pointer-events: none; /* prevents clicks */
+    pointer-events: none; /* prevent clicks */
   }
 
   #cargoOverlay {
     position: fixed;
     top: 10px;
     right: 10px;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     padding: 10px 15px;
     border-radius: 8px;
     font-size: 14px;
@@ -77,14 +77,14 @@ function setCargoWaypoint(code, cargoName = "") {
 function handleServerData(rawData) {
   let cargoArray = [];
 
-  // rawData can be array of objects each containing .data
   if (Array.isArray(rawData)) {
+    // rawData is an array of objects, each may contain .data
     for (const item of rawData) {
       if (item.data && Array.isArray(item.data)) {
         cargoArray.push(...item.data);
       }
     }
-  } else if (rawData?.data) {
+  } else if (rawData?.data && Array.isArray(rawData.data)) {
     cargoArray = rawData.data;
   }
 
@@ -101,10 +101,13 @@ function handleServerData(rawData) {
   }
 
   // Extract airport code from displayname or modelname
-  let match = nextCargo.displayname.match(/Air Cargo:\s*([A-Z]+)/i);
-  if (!match) match = nextCargo.modelname.match(/aircargo_([a-z]+)/i);
+  let match = nextCargo.displayname?.match(/Air Cargo:\s*([A-Z]+)/i);
+  if (!match) match = nextCargo.modelname?.match(/aircargo_([a-z]+)/i);
   const airportCode = match ? match[1].toUpperCase() : null;
-  if (!airportCode) return;
+  if (!airportCode) {
+    updateOverlay(nextCargo.displayname, "Unknown");
+    return;
+  }
 
   setCargoWaypoint(airportCode, nextCargo.displayname);
 }
