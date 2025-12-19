@@ -42,12 +42,9 @@ const airports = {
   ZMA:{x:-2444.02,y:3126.47,z:32.81,name:"Zancudo Deliver Cargo"},
   CIA:{x:-5339.27,y:913.45,z:12.00,name:"Chumash Deliver Cargo"},
   POP:{x:997.18,y:-3415.91,z:4.70,name:"PostOP Deliver Cargo"},
-
-  // special cases
   POA:{x:3008.46,y:-716.60,z:19.44,name:"Pacific Ocean Deliver Cargo"},
   MGA:{x:2951.19,y:-1063.45,z:18.59,name:"Mount Gordo Deliver Cargo"}
 };
-
 
 // ================================
 // UI UPDATE
@@ -57,10 +54,15 @@ function updateOverlay(cargoName, airportName){
   overlay.innerHTML = cargoName
     ? `Cargo: <b>${cargoName}</b><br>Next: <b>${airportName || 'Unknown'}</b>`
     : 'Waiting for cargo notifications...';
-  
   overlay.style.opacity = 1;
   setTimeout(()=>{ overlay.style.opacity = 0.7; }, 5000);
 }
+
+// ================================
+// TRACK LAST PROCESSED CARGO & WAYPOINT STATE
+// ================================
+let lastCargoCode = null;
+let waypointActive = false;
 
 // ================================
 // SET WAYPOINT
@@ -73,15 +75,16 @@ function setCargoWaypoint(code, cargoName=""){
     return;
   }
 
+  // Only set waypoint if it's a new cargo OR previous waypoint was cleared
+  if(code === lastCargoCode && waypointActive) return;
+
+  lastCargoCode = code;
+  waypointActive = true;
+
   window.parent.postMessage({type:"setWaypoint", x:airport.x, y:airport.y},"*");
   window.parent.postMessage({type:"notification", text:`✈️ Waypoint set: ${airport.name}`},"*");
   updateOverlay(cargoName, airport.name);
 }
-
-// ================================
-// TRACK LAST PROCESSED CARGO
-// ================================
-let lastCargoCode = null;
 
 // ================================
 // PROCESS NOTIFICATION
@@ -92,15 +95,9 @@ function processNotification(text){
   // Ignore notifications sent by our app
   if(text.includes("✈️ Waypoint set:")) return;
 
-  // Match Air Cargo notifications
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
     const airportCode = match[1].toUpperCase();
-
-    // Only set waypoint if this is a new Air Cargo code
-    if(airportCode === lastCargoCode) return;
-    lastCargoCode = airportCode;
-
     setCargoWaypoint(airportCode, "Air Cargo");
   }
 }
@@ -110,6 +107,9 @@ function processNotification(text){
 // ================================
 function handleGameMessage(event){
   const msg = event.data.data || event.data || {};
+
+  // Reset waypoint state if cleared manually
+  if(msg.waypoint === false) waypointActive = false;
 
   if(msg.notification && typeof msg.notification === "string"){
     processNotification(msg.notification);
@@ -126,7 +126,7 @@ window.addEventListener("message", handleGameMessage);
 // ================================
 // REQUEST LAST CACHED NOTIFICATION ON LOAD
 // ================================
-window.parent.postMessage({ type: "getNamedData", keys: ["notification"] }, "*");
+window.parent.postMessage({ type: "getNamedData", keys: ["notification","waypoint"] }, "*");
 
 // ================================
 // INITIAL OVERLAY
