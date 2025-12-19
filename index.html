@@ -14,11 +14,31 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
   transition: opacity 0.3s ease;
 }
 #version { position:fixed; bottom:10px; right:10px; color:white; font-size:12px; }
+
+/* New – yellow crate button (always visible, above parachute) */
+#cargoButton {
+  position: fixed;
+  bottom: 160px;               /* move this number up/down until it sits perfectly above parachute */
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  z-index: 9999;
+  pointer-events: auto;
+  opacity: 0.5;                /* dim when no cargo */
+  transition: opacity 0.3s;
+}
+#cargoButton:hover { opacity: 1; }
+#cargoButton.active { opacity: 0.9; }  /* bright when you have cargo */
 </style>
 </head>
 <body>
 <div id="cargoOverlay">Waiting for cargo notifications...</div>
-<div id="version">v1.6</div>
+<div id="version">v1.7 – crate button added</div>
+
+<!-- New yellow crate button – always visible -->
+<div id="cargoButton" title="Click to re-set last cargo waypoint">
+  <img src="https://i.imgur.com/0z1pX3g.png" alt="Cargo Crate" style="width:60px; height:60px;">
+</div>
 
 <script>
 // ================================
@@ -31,50 +51,20 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
     window.location.replace(url.toString());
   }
 })();
-
 // ================================
-// AIRPORT COORDINATES
+// AIRPORT COORDINATES (your perfect list)
 // ================================
-
-// {name = "Cargo Airport&#58; LSIA", x = -1422.920654, y = -2674.462891, z = 13.944948, h = 154.511978}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; PostOp", x = 997.783691, y = -3414.555176, z = 4.166296, h = 4.473835}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Zancudo", x = -2121.924072, y = 3133.656738, z = 32.275791, h = 327.055023}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Mount Gordo", x = 2274.987793, y = 7004.572754, z = 20.483629, h = 332.028137}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Chumash", x = -5340.230957, y = 913.903381, z = 11.465002, h = 88.751167}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Sandy Shores", x = 528.186584, y = 3830.414307, z = 32.564682, h = 270.941711}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Pacific Ocean", x = 3009.449707, y = -716.817200, z = 18.903870, h = 264.571045}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; San Chianski", x = 6352.303223, y = 3554.068604, z = 11.465202, h = 8.547173}, -- ☃️ chapman622 ☃️ (30197)
-// {name = "Cargo Airport&#58; Roxwood", x = -3097.245850, y = 7653.294434, z = 44.300056, h = 99.460709}, -- ☃️ chapman622 ☃️ (30197)
-  
-//const airports = {
-  //LSIA: {x: -985.95, y: -2995.50, z: 22.73, name: "Cargo Airport: LSIA"},
-  //SSIA: {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores (SSIA)"},
-  //SAN:  {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores Airfield (SAN)"},  // Often same as SSIA
-  //MKA:  {x: 2119.92, y: 4806.70, z: 49.85, name: "Cargo Airport: McKenzie (MKA)"},
-  //SCA:  {x: 6231.88, y: 2951.94, z: 20.82, name: "Cargo Airport: San Chianski (SCA)"},
-  //ZMA:  {x: -2129.56, y: 3132.29, z: 41.65, name: "Cargo Airport: Zancudo (ZMA/ZAN)"},
-  //CIA:  {x: -4830.09, y: 1063.91, z: 20.79, name: "Cargo Airport: Chumash (CIA)"},
-  //POA:  {x: 3034.56, y: -1432.00, z: 19.84, name: "Cargo Airport: Pacific Ocean (POA)"},
-  //PBA:  {x: -3234.13, y: 7392.24, z: 44.59, name: "Cargo Airport: Paleto Bay (PBA/RAM)"},
-  //MGA:  {x: 2577.80, y: 6652.55, z: 20.51, name: "Cargo Airport: Mount Gordo (MGA)"},
-  //POP:  {x: 997.18, y: -3415.91, z: 4.70, name: "Cargo Airport: PostOp (POP)"},  // If it appears
-  //CV:   {x: 3082.31, y: -4719.0, z: 15.26, name: "Aircraft Carrier (CV)"},
-  //CPA:  {x: 4480.0, y: -4480.0, z: 5.0, name: "Cayo Perico Airfield (CPA)"}
-//};
-
-  const airports = {
+const airports = {
   LSIA: {x: -1422.92, y: -2674.46, z: 13.94, name: "Cargo Airport: LSIA"},
-  POP: {x: 997.78, y: -3414.56, z: 4.17, name: "Cargo Airport: PostOp"},
-  ZMA: {x: -2121.92, y: 3133.66, z: 32.28, name: "Cargo Airport: Zancudo"},
-  MGA: {x: 2274.99, y: 7004.57, z: 20.48, name: "Cargo Airport: Mount Gordo"},
-  CIA: {x: -5340.23, y: 913.90, z: 11.47, name: "Cargo Airport: Chumash"},
-  SSIA: {x: 528.19, y: 3830.41, z: 32.56, name: "Cargo Airport: Sandy Shores"},
-  POC: {x: 3009.45, y: -716.82, z: 18.90, name: "Cargo Airport: Pacific Ocean"},
-  SCA: {x: 6352.30, y: 3554.07, z: 11.47, name: "Cargo Airport: San Chianski"},
-  RAM: {x: -3097.25, y: 7653.29, z: 44.30, name: "Cargo Airport: Roxwood"}
-  // Add more if you grab them (e.g., Paleto Bay might be Roxwood)
+  POP:  {x: 997.78,  y: -3414.56, z: 4.17,  name: "Cargo Airport: PostOp"},
+  ZMA:  {x: -2121.92, y: 3133.66, z: 32.28, name: "Cargo Airport: Zancudo"},
+  MGA:  {x: 2274.99,  y: 7004.57, z: 20.48, name: "Cargo Airport: Mount Gordo"},
+  CIA:  {x: -5340.23, y: 913.90,  z: 11.47, name: "Cargo Airport: Chumash"},
+  SSIA: {x: 528.19,   y: 3830.41, z: 32.56, name: "Cargo Airport: Sandy Shores"},
+  POC:  {x: 3009.45,  y: -716.82, z: 18.90, name: "Cargo Airport: Pacific Ocean"},
+  SCA:  {x: 6352.30,  y: 3554.07, z: 11.47, name: "Cargo Airport: San Chianski"},
+  RAM:  {x: -3097.25, y: 7653.29, z: 44.30, name: "Cargo Airport: Roxwood"}
 };
-
 // ================================
 // UI UPDATE
 // ================================
@@ -86,13 +76,11 @@ function updateOverlay(cargoName, airportName){
   overlay.style.opacity = 1;
   setTimeout(()=>{ overlay.style.opacity = 0.7; }, 5000);
 }
-
 // ================================
 // TRACK LAST PROCESSED CARGO & WAYPOINT STATE
 // ================================
 let lastCargoCode = null;
 let waypointActive = false;
-
 // ================================
 // SET WAYPOINT
 // ================================
@@ -103,71 +91,67 @@ function setCargoWaypoint(code, cargoName=""){
     updateOverlay(cargoName, `Unknown (${code})`);
     return;
   }
-
-  // Only set waypoint if it's a new cargo OR previous waypoint was cleared
   if(code === lastCargoCode && waypointActive) return;
-
   lastCargoCode = code;
   waypointActive = true;
-
   window.parent.postMessage({type:"setWaypoint", x:airport.x, y:airport.y},"*");
   window.parent.postMessage({type:"notification", text:`✈️ Waypoint set: ${airport.name}`},"*");
   updateOverlay(cargoName, airport.name);
+  document.getElementById('cargoButton').classList.add('active');  // brighten button
 }
-
 // ================================
 // PROCESS NOTIFICATION
 // ================================
 function processNotification(text){
   if(!text) return;
-
-  // Ignore notifications sent by our app
   if(text.includes("✈️ Waypoint set:")) return;
-
-  // ONLY process if it's a "received" notification
   if(!text.toLowerCase().includes("received")) return;
 
-  // Now safely extract the code (e.g., from "You received Air Cargo: SSIA")
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
     const airportCode = match[1].toUpperCase();
     setCargoWaypoint(airportCode, "Air Cargo");
   }
 }
-
 // ================================
 // HANDLE GAME DATA
 // ================================
 function handleGameMessage(event){
   const msg = event.data.data || event.data || {};
-
-  // Reset waypoint state if cleared manually
   if(msg.waypoint === false){
     waypointActive = false;
-    lastCargoCode = null; // <-- only change we added
+    // Keep button bright if we still have cargo
+    if(lastCargoCode) document.getElementById('cargoButton').classList.add('active');
   }
-
   if(msg.notification && typeof msg.notification === "string"){
     processNotification(msg.notification);
   }
-
-  console.log("Received game data:", msg); // Debug
+  console.log("Received game data:", msg);
 }
-
 // ================================
 // LISTEN FOR GAME MESSAGES
 // ================================
 window.addEventListener("message", handleGameMessage);
-
 // ================================
 // REQUEST LAST CACHED NOTIFICATION ON LOAD
 // ================================
 window.parent.postMessage({ type: "getNamedData", keys: ["notification","waypoint"] }, "*");
-
 // ================================
-// INITIAL OVERLAY
+// NEW – crate button always visible + click to re-set
+// ================================
+document.getElementById('cargoButton').addEventListener('click', () => {
+  if(lastCargoCode && airports[lastCargoCode]){
+    setCargoWaypoint(lastCargoCode, "Air Cargo");
+    window.parent.postMessage({type:"notification", text:"🔄 Cargo waypoint re-set!"}, "*");
+  } else {
+    window.parent.postMessage({type:"notification", text:"⚠️ No active cargo to re-set"}, "*");
+  }
+});
+// ================================
+// INITIAL OVERLAY + button starts dim
 // ================================
 updateOverlay(null,null);
+document.getElementById('cargoButton').classList.remove('active'); // dim at start
 </script>
 </body>
 </html>
