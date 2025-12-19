@@ -18,9 +18,10 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 /* New – yellow crate button (always visible, above parachute) */
 #cargoButton {
   position: fixed;
-  bottom: 160px;               /* move this number up/down until it sits perfectly above parachute */
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 100px;               /* sits above the parachute button at 60px */
+  left: 20px;                  /* aligned with parachute button */
+  width: 60px;
+  height: 60px;
   cursor: pointer;
   z-index: 9999;
   pointer-events: auto;
