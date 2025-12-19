@@ -81,6 +81,7 @@ function updateOverlay(cargoName, airportName){
 // ================================
 let lastCargoCode = null;
 let waypointActive = false;
+let hasActiveCargo = false;  // tracks if we currently have cargo
 // ================================
 // SET WAYPOINT
 // ================================
@@ -94,6 +95,10 @@ function setCargoWaypoint(code, cargoName=""){
   if(code === lastCargoCode && waypointActive) return;
   lastCargoCode = code;
   waypointActive = true;
+  hasActiveCargo = true;  // mark that we have cargo
+  // Save to localStorage
+  localStorage.setItem('lastCargoCode', code);
+  localStorage.setItem('hasActiveCargo', 'true');
   window.parent.postMessage({type:"setWaypoint", x:airport.x, y:airport.y},"*");
   window.parent.postMessage({type:"notification", text:`✈️ Waypoint set: ${airport.name}`},"*");
   updateOverlay(cargoName, airport.name);
@@ -120,12 +125,22 @@ function handleGameMessage(event){
   const msg = event.data.data || event.data || {};
   if(msg.waypoint === false){
     waypointActive = false;
-    lastCargoCode = null;
+    // Keep lastCargoCode so button can re-set it
     // Keep button bright if we still have cargo
-    if(lastCargoCode) document.getElementById('cargoButton').classList.add('active');
+    if(hasActiveCargo) document.getElementById('cargoButton').classList.add('active');
   }
   if(msg.notification && typeof msg.notification === "string"){
     processNotification(msg.notification);
+  }
+  // Handle cached data response on page load
+  if(msg.notification && !lastCargoCode){
+    const match = msg.notification.match(/Air Cargo:\s*([A-Z]+)/i);
+    if(match){
+      lastCargoCode = match[1].toUpperCase();
+      hasActiveCargo = true;
+      document.getElementById('cargoButton').classList.add('active');
+      updateOverlay("Air Cargo", airports[lastCargoCode]?.name || "Unknown");
+    }
   }
   console.log("Received game data:", msg);
 }
@@ -141,7 +156,7 @@ window.parent.postMessage({ type: "getNamedData", keys: ["notification","waypoin
 // NEW – crate button always visible + click to re-set
 // ================================
 document.getElementById('cargoButton').addEventListener('click', () => {
-  if(lastCargoCode && airports[lastCargoCode]){
+  if(lastCargoCode && hasActiveCargo && airports[lastCargoCode]){
     setCargoWaypoint(lastCargoCode, "Air Cargo");
     window.parent.postMessage({type:"notification", text:"🔄 Cargo waypoint re-set!"}, "*");
   } else {
@@ -151,8 +166,18 @@ document.getElementById('cargoButton').addEventListener('click', () => {
 // ================================
 // INITIAL OVERLAY + button starts dim
 // ================================
-updateOverlay(null,null);
-document.getElementById('cargoButton').classList.remove('active'); // dim at start
+// Restore from localStorage on page load
+const savedCargoCode = localStorage.getItem('lastCargoCode');
+const savedHasCargo = localStorage.getItem('hasActiveCargo') === 'true';
+if(savedCargoCode && savedHasCargo){
+  lastCargoCode = savedCargoCode;
+  hasActiveCargo = true;
+  document.getElementById('cargoButton').classList.add('active');
+  updateOverlay("Air Cargo", airports[savedCargoCode]?.name || "Unknown");
+} else {
+  updateOverlay(null,null);
+  document.getElementById('cargoButton').classList.remove('active'); // dim at start
+}
 </script>
 </body>
 </html>
