@@ -10,8 +10,10 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
   position:fixed; top:10px; right:10px;
   background:rgba(0,0,0,0.7); padding:10px 15px;
   border-radius:8px; font-size:14px; z-index:9999;
-  pointer-events:none;
+  pointer-events:auto;
   transition: opacity 0.3s ease;
+  cursor: move;
+  user-select: none;
 }
 #version { position:fixed; bottom:10px; right:10px; color:white; font-size:12px; }
 
@@ -187,6 +189,48 @@ if(savedCargoCode && savedHasCargo){
   updateOverlay(null,null);
   document.getElementById('cargoButton').classList.remove('active'); // dim at start
 }
+// ================================
+// MAKE CARGO OVERLAY DRAGGABLE
+// ================================
+(function() {
+  const overlay = document.getElementById('cargoOverlay');
+  let isDragging = false;
+  let currentX, currentY, initialX, initialY;
+  
+  // Restore saved position
+  const savedX = localStorage.getItem('overlayX');
+  const savedY = localStorage.getItem('overlayY');
+  if(savedX && savedY) {
+    overlay.style.left = savedX + 'px';
+    overlay.style.top = savedY + 'px';
+    overlay.style.right = 'auto';
+  }
+  
+  overlay.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    initialX = e.clientX - (parseInt(overlay.style.left) || overlay.offsetLeft);
+    initialY = e.clientY - (parseInt(overlay.style.top) || overlay.offsetTop);
+  });
+  
+  document.addEventListener('mousemove', (e) => {
+    if(!isDragging) return;
+    e.preventDefault();
+    currentX = e.clientX - initialX;
+    currentY = e.clientY - initialY;
+    overlay.style.left = currentX + 'px';
+    overlay.style.top = currentY + 'px';
+    overlay.style.right = 'auto';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if(isDragging) {
+      isDragging = false;
+      // Save position
+      localStorage.setItem('overlayX', parseInt(overlay.style.left));
+      localStorage.setItem('overlayY', parseInt(overlay.style.top));
+    }
+  });
+})();
 </script>
 </body>
 </html>
