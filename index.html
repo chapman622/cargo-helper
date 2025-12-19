@@ -120,6 +120,7 @@ function handleGameMessage(event){
   const msg = event.data.data || event.data || {};
   if(msg.waypoint === false){
     waypointActive = false;
+    lastCargoCode = null;
     // Keep button bright if we still have cargo
     if(lastCargoCode) document.getElementById('cargoButton').classList.add('active');
   }
