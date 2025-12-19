@@ -35,20 +35,44 @@ body { margin:0; font-family:"Segoe UI", sans-serif; background:transparent; col
 // ================================
 // AIRPORT COORDINATES
 // ================================
-const airports = {
-  LSIA: {x: -985.95, y: -2995.50, z: 22.73, name: "Cargo Airport: LSIA"},
-  SSIA: {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores (SSIA)"},
-  SAN:  {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores Airfield (SAN)"},  // Often same as SSIA
-  MKA:  {x: 2119.92, y: 4806.70, z: 49.85, name: "Cargo Airport: McKenzie (MKA)"},
-  SCA:  {x: 6231.88, y: 2951.94, z: 20.82, name: "Cargo Airport: San Chianski (SCA)"},
-  ZMA:  {x: -2129.56, y: 3132.29, z: 41.65, name: "Cargo Airport: Zancudo (ZMA/ZAN)"},
-  CIA:  {x: -4830.09, y: 1063.91, z: 20.79, name: "Cargo Airport: Chumash (CIA)"},
-  POA:  {x: 3034.56, y: -1432.00, z: 19.84, name: "Cargo Airport: Pacific Ocean (POA)"},
-  PBA:  {x: -3234.13, y: 7392.24, z: 44.59, name: "Cargo Airport: Paleto Bay (PBA/RAM)"},
-  MGA:  {x: 2577.80, y: 6652.55, z: 20.51, name: "Cargo Airport: Mount Gordo (MGA)"},
-  POP:  {x: 997.18, y: -3415.91, z: 4.70, name: "Cargo Airport: PostOp (POP)"},  // If it appears
-  CV:   {x: 3082.31, y: -4719.0, z: 15.26, name: "Aircraft Carrier (CV)"},
-  CPA:  {x: 4480.0, y: -4480.0, z: 5.0, name: "Cayo Perico Airfield (CPA)"}
+
+// {name = "Cargo Airport&#58; LSIA", x = -1422.920654, y = -2674.462891, z = 13.944948, h = 154.511978}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; PostOp", x = 997.783691, y = -3414.555176, z = 4.166296, h = 4.473835}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Zancudo", x = -2121.924072, y = 3133.656738, z = 32.275791, h = 327.055023}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Mount Gordo", x = 2274.987793, y = 7004.572754, z = 20.483629, h = 332.028137}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Chumash", x = -5340.230957, y = 913.903381, z = 11.465002, h = 88.751167}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Sandy Shores", x = 528.186584, y = 3830.414307, z = 32.564682, h = 270.941711}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Pacific Ocean", x = 3009.449707, y = -716.817200, z = 18.903870, h = 264.571045}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; San Chianski", x = 6352.303223, y = 3554.068604, z = 11.465202, h = 8.547173}, -- ☃️ chapman622 ☃️ (30197)
+// {name = "Cargo Airport&#58; Roxwood", x = -3097.245850, y = 7653.294434, z = 44.300056, h = 99.460709}, -- ☃️ chapman622 ☃️ (30197)
+  
+//const airports = {
+  //LSIA: {x: -985.95, y: -2995.50, z: 22.73, name: "Cargo Airport: LSIA"},
+  //SSIA: {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores (SSIA)"},
+  //SAN:  {x: 1729.46, y: 3240.20, z: 50.03, name: "Cargo Airport: Sandy Shores Airfield (SAN)"},  // Often same as SSIA
+  //MKA:  {x: 2119.92, y: 4806.70, z: 49.85, name: "Cargo Airport: McKenzie (MKA)"},
+  //SCA:  {x: 6231.88, y: 2951.94, z: 20.82, name: "Cargo Airport: San Chianski (SCA)"},
+  //ZMA:  {x: -2129.56, y: 3132.29, z: 41.65, name: "Cargo Airport: Zancudo (ZMA/ZAN)"},
+  //CIA:  {x: -4830.09, y: 1063.91, z: 20.79, name: "Cargo Airport: Chumash (CIA)"},
+  //POA:  {x: 3034.56, y: -1432.00, z: 19.84, name: "Cargo Airport: Pacific Ocean (POA)"},
+  //PBA:  {x: -3234.13, y: 7392.24, z: 44.59, name: "Cargo Airport: Paleto Bay (PBA/RAM)"},
+  //MGA:  {x: 2577.80, y: 6652.55, z: 20.51, name: "Cargo Airport: Mount Gordo (MGA)"},
+  //POP:  {x: 997.18, y: -3415.91, z: 4.70, name: "Cargo Airport: PostOp (POP)"},  // If it appears
+  //CV:   {x: 3082.31, y: -4719.0, z: 15.26, name: "Aircraft Carrier (CV)"},
+  //CPA:  {x: 4480.0, y: -4480.0, z: 5.0, name: "Cayo Perico Airfield (CPA)"}
+//};
+
+  const airports = {
+  LSIA: {x: -1422.92, y: -2674.46, z: 13.94, name: "Cargo Airport: LSIA"},
+  POSTOP: {x: 997.78, y: -3414.56, z: 4.17, name: "Cargo Airport: PostOp"},
+  ZANCUDO: {x: -2121.92, y: 3133.66, z: 32.28, name: "Cargo Airport: Zancudo"},
+  MOUNTGORDO: {x: 2274.99, y: 7004.57, z: 20.48, name: "Cargo Airport: Mount Gordo"},
+  CHUMASH: {x: -5340.23, y: 913.90, z: 11.47, name: "Cargo Airport: Chumash"},
+  SANDYSHORES: {x: 528.19, y: 3830.41, z: 32.56, name: "Cargo Airport: Sandy Shores"},
+  PACIFICOCEAN: {x: 3009.45, y: -716.82, z: 18.90, name: "Cargo Airport: Pacific Ocean"},
+  SANCHIANSKI: {x: 6352.30, y: 3554.07, z: 11.47, name: "Cargo Airport: San Chianski"},
+  ROXWOOD: {x: -3097.25, y: 7653.29, z: 44.30, name: "Cargo Airport: Roxwood"}
+  // Add more if you grab them (e.g., Paleto Bay might be Roxwood)
 };
 
 // ================================
