@@ -109,7 +109,10 @@ function handleGameMessage(event){
   const msg = event.data.data || event.data || {};
 
   // Reset waypoint state if cleared manually
-  if(msg.waypoint === false) waypointActive = false;
+  if(msg.waypoint === false){
+    waypointActive = false;
+    lastCargoCode = null; // <-- only change we added
+  }
 
   if(msg.notification && typeof msg.notification === "string"){
     processNotification(msg.notification);
