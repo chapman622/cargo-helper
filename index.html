@@ -124,6 +124,10 @@ function processNotification(text){
   // Ignore notifications sent by our app
   if(text.includes("✈️ Waypoint set:")) return;
 
+  // ONLY process if it's a "received" notification
+  if(!text.toLowerCase().includes("received")) return;
+
+  // Now safely extract the code (e.g., from "You received Air Cargo: SSIA")
   const match = text.match(/Air Cargo:\s*([A-Z]+)/i);
   if(match){
     const airportCode = match[1].toUpperCase();
