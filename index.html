@@ -150,6 +150,14 @@ function handleGameMessage(event){
 // ================================
 window.addEventListener("message", handleGameMessage);
 // ================================
+// PIN WEB APP ON ESCAPE
+// ================================
+window.addEventListener('keydown', (e) => {
+  if (e.key === "Escape") {
+    window.parent.postMessage({type: "pin"}, "*");
+  }
+});
+// ================================
 // REQUEST LAST CACHED NOTIFICATION ON LOAD
 // ================================
 window.parent.postMessage({ type: "getNamedData", keys: ["notification","waypoint"] }, "*");
